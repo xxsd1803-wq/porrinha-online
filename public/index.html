@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Porrinha Online</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; padding: 20px; }
+        .container { max-width: 400px; margin: auto; background: #333; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; font-size: 16px; }
+        button { background: #28a745; color: white; cursor: pointer; }
+        button:hover { background: #218838; }
+        #jogo-tela { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="login-tela">
+        <h2>Porrinha Online</h2>
+        <input type="text" id="nome" placeholder="Seu Apelido">
+        <button onclick="criarSala()">Criar Nova Sala</button>
+        <hr>
+        <input type="text" id="codigoSala" placeholder="Código da Sala">
+        <button onclick="entrarSala()">Entrar na Sala</button>
+        <p id="erro" style="color: red;"></p>
+    </div>
+
+    <div class="container" id="jogo-tela">
+        <h2>Sala: <span id="span-codigo"></span></h2>
+        <h3>Jogadores na Sala:</h3>
+        <ul id="lista-jogadores" style="list-style: none; padding: 0;"></ul>
+    </div>
+
+    <script>
+        const socket = io();
+        let meuCodigo = '';
+
+        function criarSala() {
+            const nome = document.getElementById('nome').value;
+            if (!nome) return alert('Digite seu apelido!');
+            socket.emit('criar-sala', nome);
+        }
+
+        function entrarSala() {
+            const nome = document.getElementById('nome').value;
+            const codigo = document.getElementById('codigoSala').value.toUpperCase();
+            if (!nome || !codigo) return alert('Preencha o apelido e o código da sala!');
+            socket.emit('entrar-sala', { codigo, nome });
+        }
+
+        socket.on('sala-criada', (codigo) => {
+            meuCodigo = codigo;
+            entrouNaSalaUI(codigo, document.getElementById('nome').value);
+        });
+
+        socket.on('atualizar-sala', (sala) => {
+            meuCodigo = sala.codigo;
+            entrouNaSalaUI(sala.codigo);
+            const lista = document.getElementById('lista-jogadores');
+            lista.innerHTML = '';
+            sala.jogadores.forEach(j => {
+                const li = document.createElement('li');
+                li.textContent = j.nome;
+                lista.appendChild(li);
+            });
+        });
+
+        socket.on('erro', (msg) => {
+            document.getElementById('erro').textContent = msg;
+        });
+
+        function entrouNaSalaUI(codigo) {
+            document.getElementById('login-tela').style.display = 'none';
+            document.getElementById('jogo-tela').style.display = 'block';
+            document.getElementById('span-codigo').textContent = codigo;
+        }
+    </script>
+</body>
+</html>
